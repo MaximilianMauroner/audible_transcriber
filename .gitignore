@@ -1,0 +1,7 @@
+node_modules
+dist
+venv
+audible_files
+bookmarks
+.idea
+__pycache__
