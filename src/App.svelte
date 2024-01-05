@@ -1,55 +1,68 @@
 <script lang="ts">
     import { invoke } from "@tauri-apps/api/tauri";
 
-    let files: FileList | null;
+    const pickerOpts = {
+        types: [
+            {
+                description: "Audible File",
+                accept: {
+                    "*": [".aax"],
+                },
+            },
+        ],
+        excludeAcceptAllOption: true,
+        multiple: false,
+    };
+    let uploading: boolean = false;
+    let progress: number = 0;
 
-    const handleSubmit = (event: Event) => {
-        event.preventDefault();
-
-        if (!files || files.length === 0) {
-            console.error("No files selected");
+    const openFileDialog = async () => {
+        const currentDirHandle = await window.showDirectoryPicker();
+        await returnPathDirectories(currentDirHandle);
+    };
+    async function returnPathDirectories(
+        directoryHandle: FileSystemDirectoryHandle
+    ) {
+        // Get a file handle by showing a file picker:
+        const [handle] = await self.showOpenFilePicker();
+        if (!handle) {
+            // User cancelled, or otherwise failed to open a file.
             return;
         }
 
-        const file = files[0];
-        const reader = new FileReader();
+        // Check if handle exists inside our directory handle
+        const relativePaths = await directoryHandle.resolve(handle);
 
-        reader.onload = async (event) => {
-            if (!event.target) return;
+        if (relativePaths === null) {
+            // Not inside directory handle
+        } else {
+            // relativePath is an array of names, giving the relative path
 
-            const fileContents = event.target.result as ArrayBuffer;
-            const chunkSize = 1024 * 1024 * 10; // 10MB
-            const numChunks = Math.ceil(fileContents.byteLength / chunkSize);
-            for (let i = 0; i < numChunks; i++) {
-                const start = i * chunkSize;
-                const end = Math.min(
-                    start + chunkSize,
-                    fileContents.byteLength
-                );
-
-                const chunk = fileContents.slice(start, end);
-                const res = await invoke("append_chunk_to_file", {
-                    path: file.name,
-                    chunk: Array.from(new Uint8Array(chunk)),
-                });
-                console.log(res, Number.isInteger(res));
-
-                if (!res) {
-                    console.log("error");
-                    return false;
-                }
+            for (const name of relativePaths) {
+                // log each entry
+                console.log(name);
             }
-        };
-
-        reader.readAsArrayBuffer(file);
-    };
+        }
+    }
 </script>
 
 <main class="h-full min-h-screen p-4">
     <div class="container m-auto pt-2">
         <h1 class="text-4xl text-center text-gray-800">Audible Transcriber</h1>
     </div>
-    <form on:submit={handleSubmit} class="max-w-screen-md m-auto">
+    {#if uploading}
+        <div class="w-full bg-gray-200 rounded-full dark:bg-gray-700">
+            <div
+                class="bg-blue-600 text-xs font-medium text-blue-100 text-center p-0.5 leading-none rounded-full"
+                style={`width: ${progress}%`}
+            >
+                {progress}%
+            </div>
+        </div>
+
+        <progress class="w-full" value={progress} max="100"></progress>
+    {/if}
+    <div class="max-w-screen-md m-auto">
         <div class="space-y-12">
             <div class="mt-10 grid grid-cols-1 gap-x-6 gap-y-8 sm:grid-cols-6">
                 <div class="col-span-full">
@@ -74,7 +87,8 @@
                                     clip-rule="evenodd"
                                 />
                             </svg>
-                            <div
+                            <button
+                                on:click={openFileDialog}
                                 class="mt-4 flex text-sm leading-6 text-gray-600"
                             >
                                 <label
@@ -82,19 +96,11 @@
                                     class="relative cursor-pointer rounded-md bg-white font-semibold text-indigo-600 focus-within:outline-none focus-within:ring-2 focus-within:ring-indigo-600 focus-within:ring-offset-2 hover:text-indigo-500"
                                 >
                                     <span>Upload the .aax file</span>
-                                    <input
-                                        bind:files
-                                        id="file-upload"
-                                        name="file-upload"
-                                        type="file"
-                                        class="sr-only"
-                                        required
-                                    />
                                 </label>
                                 <p class="pl-1">
                                     or drag and drop your audible file
                                 </p>
-                            </div>
+                            </button>
                             <p class="text-xs leading-5 text-gray-600">.aax</p>
                         </div>
                     </div>
@@ -108,10 +114,10 @@
                 >Cancel</button
             >
             <button
-                type="submit"
+                type="button"
                 class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
                 >Save</button
             >
         </div>
-    </form>
+    </div>
 </main>

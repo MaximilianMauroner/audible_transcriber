@@ -3,7 +3,7 @@
 
 use std::{fs::OpenOptions, io::Write, os::windows::fs::MetadataExt};
 
-use tauri::api::path::audio_dir;
+use tauri::{api::path::audio_dir, webview_version};
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
 #[tauri::command]
@@ -35,6 +35,7 @@ fn append_chunk_to_file(path: String, chunk: Vec<u8>) -> Result<u64, String> {
 }
 
 fn main() {
+    println!("{:?}", webview_version());
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![append_chunk_to_file])
         .run(tauri::generate_context!())
