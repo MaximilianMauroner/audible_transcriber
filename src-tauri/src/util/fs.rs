@@ -1,100 +1,106 @@
 use std::{
     fs::{self, create_dir},
-    io::{self},
+    io::{self, BufWriter},
     path::{Path, PathBuf},
 };
 
-use serde::{de::DeserializeOwned, Serialize};
+use serde::{de::DeserializeOwned, Deserialize, Serialize};
 
-pub fn flatten(path: &Path, overwrite: bool) -> Result<bool, io::Error> {
-    if !path.exists() {
-        return Ok(false);
-    }
-
-    let parent = path.parent().unwrap();
-    copy_contents(path, parent, overwrite)?;
-    fs::remove_dir_all(path)?;
-
-    Ok(true)
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct AudibleDataLocation {
+    path: PathBuf,
 }
 
-pub fn copy_dir(src: &Path, dest: &Path, overwrite: bool) -> io::Result<()> {
-    fs::create_dir_all(dest)?;
-    copy_contents(src, dest, overwrite)
-}
+// pub fn flatten(path: &Path, overwrite: bool) -> Result<bool, io::Error> {
+//     if !path.exists() {
+//         return Ok(false);
+//     }
 
-pub fn copy_contents(src: &Path, dest: &Path, overwrite: bool) -> io::Result<()> {
-    for entry in src.read_dir()? {
-        let entry = entry?;
+//     let parent = path.parent().unwrap();
+//     copy_contents(path, parent, overwrite)?;
+//     fs::remove_dir_all(path)?;
 
-        let entry_path = entry.path();
-        let file_name = entry_path.file_name().unwrap();
-        let new_path = dest.join(file_name);
+//     Ok(true)
+// }
 
-        if entry_path.is_dir() {
-            if !new_path.exists() {
-                fs::create_dir(&new_path)?;
-            }
+// pub fn copy_dir(src: &Path, dest: &Path, overwrite: bool) -> io::Result<()> {
+//     fs::create_dir_all(dest)?;
+//     copy_contents(src, dest, overwrite)
+// }
 
-            copy_contents(&entry_path, &new_path, overwrite)?;
-        } else {
-            if new_path.exists() && !overwrite {
-                continue;
-            }
+// pub fn copy_contents(src: &Path, dest: &Path, overwrite: bool) -> io::Result<()> {
+//     for entry in src.read_dir()? {
+//         let entry = entry?;
 
-            fs::copy(&entry_path, &new_path)?;
-        }
-    }
+//         let entry_path = entry.path();
+//         let file_name = entry_path.file_name().unwrap();
+//         let new_path = dest.join(file_name);
 
-    Ok(())
-}
+//         if entry_path.is_dir() {
+//             if !new_path.exists() {
+//                 fs::create_dir(&new_path)?;
+//             }
 
-pub fn read_json<T: DeserializeOwned>(path: &Path) -> anyhow::Result<T> {
-    let file = fs::File::open(path)?;
-    let reader = io::BufReader::new(file);
-    let result = serde_json::from_reader(reader)?;
+//             copy_contents(&entry_path, &new_path, overwrite)?;
+//         } else {
+//             if new_path.exists() && !overwrite {
+//                 continue;
+//             }
 
-    Ok(result)
-}
+//             fs::copy(&entry_path, &new_path)?;
+//         }
+//     }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum JsonStyle {
-    Pretty,
-    Compact,
-}
+//     Ok(())
+// }
 
-pub fn write_json<T: Serialize + ?Sized>(
-    path: impl AsRef<Path>,
-    value: &T,
-    style: JsonStyle,
-) -> anyhow::Result<()> {
-    let file = fs::File::create(path)?;
-    let writer = io::BufWriter::new(file);
+// pub fn read_json<T: DeserializeOwned>(path: &Path) -> anyhow::Result<T> {
+//     let file = fs::File::open(path)?;
+//     let reader = io::BufReader::new(file);
+//     let result = serde_json::from_reader(reader)?;
 
-    if style == JsonStyle::Pretty {
-        serde_json::to_writer_pretty(writer, value)?;
-    } else {
-        serde_json::to_writer(writer, value)?;
-    }
+//     Ok(result)
+// }
 
-    Ok(())
-}
+// #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+// pub enum JsonStyle {
+//     Pretty,
+//     Compact,
+// }
 
-pub fn add_extension(path: &mut PathBuf, extension: impl AsRef<Path>) {
-    match path.extension() {
-        Some(ext) => {
-            let mut ext = ext.to_os_string();
-            ext.push(".");
-            ext.push(extension.as_ref());
-            path.set_extension(ext)
-        }
-        None => path.set_extension(extension.as_ref()),
-    };
-}
+// pub fn write_json<T: Serialize + ?Sized>(
+//     path: impl AsRef<Path>,
+//     value: &T,
+//     style: JsonStyle,
+// ) -> anyhow::Result<()> {
+//     let file = fs::File::create(path)?;
+//     let writer = io::BufWriter::new(file);
 
-pub fn file_name_lossy(path: &Path) -> String {
-    path.file_name().unwrap().to_string_lossy().to_string()
-}
+//     if style == JsonStyle::Pretty {
+//         serde_json::to_writer_pretty(writer, value)?;
+//     } else {
+//         serde_json::to_writer(writer, value)?;
+//     }
+
+//     Ok(())
+// }
+
+// pub fn add_extension(path: &mut PathBuf, extension: impl AsRef<Path>) {
+//     match path.extension() {
+//         Some(ext) => {
+//             let mut ext = ext.to_os_string();
+//             ext.push(".");
+//             ext.push(extension.as_ref());
+//             path.set_extension(ext)
+//         }
+//         None => path.set_extension(extension.as_ref()),
+//     };
+// }
+
+// pub fn file_name_lossy(path: &Path) -> String {
+//     path.file_name().unwrap().to_string_lossy().to_string()
+// }
 
 pub trait PathExt {
     fn exists_or_none(self) -> Option<PathBuf>;
@@ -131,5 +137,24 @@ pub fn create_or_get_file(path: &PathBuf) -> io::Result<fs::File> {
         fs::File::create(&path)
     } else {
         fs::OpenOptions::new().write(true).open(&path)
+    }
+}
+
+pub fn write_to_data(data: &PathBuf, app_handle: tauri::AppHandle) -> io::Result<()> {
+    let path = app_handle
+        .path_resolver()
+        .app_data_dir()
+        .expect("Failed to resolve app data directory");
+    let file = create_or_get_file(&path.join("data.json"))?;
+    let mut writer = BufWriter::new(file);
+    let value = AudibleDataLocation {
+        path: (&data).to_path_buf(),
+    };
+    println!("Writing data to file: {:?}", value);
+    match serde_json::to_writer(&mut writer, &value) {
+        Ok(_) => Ok(()),
+        Err(e) => {
+            panic!("Failed to write data: {:?}", e);
+        }
     }
 }
