@@ -145,16 +145,14 @@ pub fn write_to_data(data: &PathBuf, app_handle: tauri::AppHandle) -> io::Result
         .path_resolver()
         .app_data_dir()
         .expect("Failed to resolve app data directory");
-    let file = create_or_get_file(&path.join("data.json"))?;
-    let mut writer = BufWriter::new(file);
+    let _ = create_or_get_file(&path.join("data.json"))?;
     let value = AudibleDataLocation {
         path: (&data).to_path_buf(),
     };
-    println!("Writing data to file: {:?}", value);
-    match serde_json::to_writer(&mut writer, &value) {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            panic!("Failed to write data: {:?}", e);
-        }
-    }
+
+    let _ = fs::write(
+        &path.join("data.json"),
+        serde_json::to_string_pretty(&value)?,
+    );
+    Ok(())
 }

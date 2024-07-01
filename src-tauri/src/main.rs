@@ -1,6 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use std::{
+    fs::{self, read_to_string},
     io::Read,
     path::{Path, PathBuf},
 };
@@ -18,6 +19,22 @@ fn load_dir(dir_path: &str, app_handle: tauri::AppHandle) -> String {
     } else {
         format!("Directory: {} not found", dir_path)
     }
+}
+
+#[tauri::command]
+fn has_audible_directory(app_handle: tauri::AppHandle) -> serde_json::Value {
+    let path = app_handle
+        .path_resolver()
+        .app_data_dir()
+        .expect("Failed to resolve app data directory");
+
+    let data = read_to_string(&path.join("data.json")).unwrap_or_else(|e| {
+        panic!("Failed to read data.json: {:?}", e);
+    });
+
+    let json: serde_json::Value =
+        serde_json::from_str(&data).expect("JSON does not have correct format.");
+    json
 }
 
 fn appdata_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
@@ -44,7 +61,7 @@ fn appdata_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>>
 fn main() {
     tauri::Builder::default()
         .setup(appdata_setup)
-        .invoke_handler(tauri::generate_handler![load_dir])
+        .invoke_handler(tauri::generate_handler![load_dir, has_audible_directory])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
