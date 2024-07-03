@@ -1,0 +1,7 @@
+/.svelte-kit
+/.vscode
+node_modules
+target
+dist
+/src-tauri
+/static

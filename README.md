@@ -6,7 +6,6 @@ This template should help get you started developing with Tauri, SvelteKit and T
 
 [VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
 
-
 # Getting started
 
 1. Download Libation from the [releases page](https://github.com/rmcrackan/Libation/releases)

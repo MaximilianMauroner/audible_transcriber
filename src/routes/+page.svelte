@@ -2,19 +2,11 @@
   import { invoke } from "@tauri-apps/api/tauri";
 
   import { open } from "@tauri-apps/api/dialog";
-  // Open a selection dialog for image files
-  let audibleDirectorySelected = false;
-  let directoryName = "";
-  const loadDir = async () => {
-    invoke("has_audible_directory").then((res) => {
-      if (res) {
-        const ret = res as { path: string };
-        audibleDirectorySelected = ret.path !== "";
-        directoryName = ret.path;
-      }
-    });
-  };
-  loadDir();
+  import { convertFileSrc } from "@tauri-apps/api/tauri";
+  import { readDir, BaseDirectory } from "@tauri-apps/api/fs";
+
+  let audibleFolders: { path: string; name: string }[] = [];
+
   const handleClick = async () => {
     const selected = await open({
       directory: true,
@@ -27,39 +19,43 @@
     } else if (selected === null) {
       // user cancelled the selection
     } else {
-      await invoke("load_dir", { dirPath: selected });
-      // user selected a single file
-      loadDir();
+      const result = await invoke("add_directory", { dirPath: selected });
+      console.log(result);
     }
   };
 
-  const getDirectoryContents = async () => {};
+  const getDirectoryContents = async () => {
+    const folders = await readDir("assets", {
+      dir: BaseDirectory.AppData,
+    });
+    audibleFolders = folders.map((fi) => {
+      return {
+        name: fi.name as string,
+        path: convertFileSrc(fi.path),
+      };
+    });
+    console.log(audibleFolders);
+  };
+  getDirectoryContents();
 </script>
 
-{#if !audibleDirectorySelected}
-  <div class="h-screen flex items-center justify-center">
-    <div>
-      <button
-        class="bg-blue-500 rounded-lg border-1 border-indigo-500 p-2 text-white"
-        on:click={handleClick}
-        >Select a directory where all your audible folders are located</button
-      >
-    </div>
+<div class="row fixed top-0 flex items-center justify-center">
+  <div>
+    <button
+      class="m-1 rounded-lg border border-indigo-500 p-1 text-sm text-black hover:bg-indigo-500 hover:text-white"
+      on:click={handleClick}
+      >Add a directory where one audible title is located</button
+    >
   </div>
-{/if}
-
-{#if audibleDirectorySelected}
-  <div class="h-screen flex justify-center">
-    <div>
-      <h1 class="text-2xl">Audible directory selected</h1>
-      <i>{directoryName}</i>
-    </div>
-    <div>
-      <h1>Audio</h1>
-      <audio
-        src="file:///C:/Users/maxim/Documents/Audible/Solve%20for%20Happy%20[B06XRZLBJC]/Solve%20for%20Happy%EA%9E%89%20Engineer%20Your%20Path%20to%20Joy%20[B06XRZLBJC]%20-%2001%20-%20Chapter%201.m4b"
-      >
-      </audio>
-    </div>
+</div>
+<div class="flex h-screen flex-col items-center justify-center gap-2">
+  <div class="flex flex-col items-center justify-center gap-2">
+    {#each audibleFolders as folder}
+      <a href={"/folder/" + folder.name}>
+        <div class="rounded-lg border border-indigo-500 p-4">
+          <span>{folder.name}</span>
+        </div>
+      </a>
+    {/each}
   </div>
-{/if}
+</div>

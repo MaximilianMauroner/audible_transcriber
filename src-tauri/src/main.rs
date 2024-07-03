@@ -1,40 +1,55 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::{
-    fs::{self, read_to_string},
-    io::Read,
-    path::{Path, PathBuf},
-};
+use std::path::Path;
 mod util;
-use util::fs::{create_dir_if_not_exists, create_or_get_file, write_to_data};
+use serde::{Deserialize, Serialize};
+use util::fs::{copy_dir, create_dir_if_not_exists};
 
-#[tauri::command]
-fn load_dir(dir_path: &str, app_handle: tauri::AppHandle) -> String {
-    let path = Path::new(dir_path);
-    if path.exists() && path.is_dir() {
-        match write_to_data(&path.to_path_buf(), app_handle) {
-            Ok(_) => format!("Directory: {} loaded", dir_path),
-            Err(e) => format!("Failed to write to data.json: {:?}", e),
-        }
-    } else {
-        format!("Directory: {} not found", dir_path)
-    }
+#[derive(Serialize, Deserialize)]
+struct Response {
+    message: String,
+    success: bool,
 }
 
 #[tauri::command]
-fn has_audible_directory(app_handle: tauri::AppHandle) -> serde_json::Value {
-    let path = app_handle
+fn add_directory(dir_path: &str, app_handle: tauri::AppHandle) -> Response {
+    let path = Path::new(dir_path);
+
+    let app_data_path = app_handle
         .path_resolver()
         .app_data_dir()
         .expect("Failed to resolve app data directory");
 
-    let data = read_to_string(&path.join("data.json")).unwrap_or_else(|e| {
-        panic!("Failed to read data.json: {:?}", e);
-    });
-
-    let json: serde_json::Value =
-        serde_json::from_str(&data).expect("JSON does not have correct format.");
-    json
+    if path.exists() && path.is_dir() {
+        let folder_name = path.file_name().unwrap().to_str().unwrap();
+        let result = copy_dir(
+            &path.to_path_buf(),
+            &app_data_path.join("assets").join(folder_name),
+            true,
+        );
+        match result {
+            Ok(_) => {
+                let json = Response {
+                    success: true,
+                    message: format!("Directory: {} selected", dir_path),
+                };
+                json
+            }
+            Err(e) => {
+                let json = Response {
+                    success: false,
+                    message: format!("Failed to copy directory: {:?}", e),
+                };
+                json
+            }
+        }
+    } else {
+        let json = Response {
+            success: false,
+            message: format!("Directory: {} not found", dir_path),
+        };
+        json
+    }
 }
 
 fn appdata_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
@@ -45,23 +60,13 @@ fn appdata_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>>
     create_dir_if_not_exists(&path).unwrap_or_else(|e| {
         panic!("Failed to create app data directory: {:?}", e);
     });
-    let mut file = create_or_get_file(&path.join("data.json")).unwrap_or_else(|e| {
-        panic!("Failed to create data.json: {:?}", e);
-    });
-
-    let mut buffer = Vec::new();
-    let _ = file.read_to_end(&mut buffer);
-
-    if buffer.len() == 0 {
-        let _ = write_to_data(&PathBuf::from(""), app.handle());
-    }
     Ok(())
 }
 
 fn main() {
     tauri::Builder::default()
         .setup(appdata_setup)
-        .invoke_handler(tauri::generate_handler![load_dir, has_audible_directory])
+        .invoke_handler(tauri::generate_handler![add_directory])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

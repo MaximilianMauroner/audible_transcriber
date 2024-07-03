@@ -20,7 +20,9 @@
         "all": true
       },
       "fs": {
-        "all": true
+        "readDir": true,
+        "readFile": true,
+        "scope": ["$APPDATA/**", "$APPDATA/*", "$APPDATA/", "$APPDATA"]
       }
     },
     "windows": [
@@ -31,7 +33,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; img-src 'self' asset: https://asset.localhost; media-src 'self' asset: https://asset.localhost"
+      "csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset:"
     },
     "bundle": {
       "active": true,
