@@ -38,6 +38,8 @@
   let progress = 0;
   let trackTimer: number;
   let isReady = -2;
+  let selectedBookmark: number;
+  let bookmarkValue: string;
 
   const HMSToSeconds = (hms: string) => {
     const a = hms.split(":");
@@ -50,6 +52,8 @@
     metadata?.records.forEach((record) => {
       record.relativePosition = calculateProgress(HMSToSeconds(record.Start));
     });
+    metadata?.records.sort((a, b) => a.relativePosition - b.relativePosition);
+
     isReady++;
     updateTime();
   };
@@ -121,19 +125,21 @@
     updateDisplayTime();
   }
 
+  const skipRate = 10;
+
   const rewindAudio = () => {
-    if (audio.currentTime < 100) {
+    if (audio.currentTime < skipRate) {
       audio.currentTime = 0;
     } else {
-      audio.currentTime -= 100;
+      audio.currentTime -= skipRate;
     }
     updateTime();
   };
   const forwardAudio = () => {
-    if (audio.currentTime + 100 > audio.duration) {
+    if (audio.currentTime + skipRate > audio.duration) {
       audio.currentTime = audio.duration;
     } else {
-      audio.currentTime += 100;
+      audio.currentTime += skipRate;
     }
     updateTime();
   };
@@ -157,6 +163,11 @@
 <nav class="flex justify-between">
   <a
     href="/"
+    on:click={() => {
+      if (isPlaying) {
+        playPauseAudio();
+      }
+    }}
     class="absolute left-0 top-0 mr-4 mt-2 -translate-x-2 rounded-lg rounded-l-none bg-indigo-800 px-4 py-2 text-white transition duration-100 ease-in-out hover:translate-x-0 hover:pl-8 hover:shadow-md"
     >Back</a
   >
@@ -249,8 +260,10 @@
           ></path>
         </svg>
       </button>
+    </div>
+    <div class="flex w-full pb-3">
       <span class="px-2 text-indigo-800">{currTimeDisplay}</span>
-      <div class="relative flex-1">
+      <div class="w-full">
         <input
           on:change={(e) => {
             audio.currentTime = getCurrentTimeByPercentage(
@@ -262,23 +275,80 @@
           class=" h-1 w-full cursor-pointer appearance-none rounded-full bg-indigo-500"
           type="range"
         />
-        {#if isReady == 0 && metadata}
-          {#each metadata.records as record}
-            <button
-              class="absolute h-10 w-[1px] bg-black pt-2"
-              style={`left: ${record.relativePosition}%;`}
-              on:click={() => {
-                audio.currentTime = getCurrentTimeByPercentage(
-                  record.relativePosition,
-                );
-                updateDisplayTime();
-              }}
-            >
-            </button>
-          {/each}
-        {/if}
       </div>
       <span class="px-2 text-indigo-800">{totalTimeDisplay}</span>
     </div>
+    {#if isReady == 0 && metadata}
+      <div class="grid grid-cols-2 gap-2">
+        <div>
+          {#if selectedBookmark !== undefined}
+            <h2 class="text-lg font-semibold">
+              Selected Bookmark:{selectedBookmark + 1}
+            </h2>
+            <textarea
+              class="h-96 w-full rounded-lg border border-gray-200 p-4"
+              bind:value={bookmarkValue}
+              on:input={(e) => {
+                if (e?.target?.value && metadata) {
+                  metadata.records[selectedBookmark].Text = e.target.value;
+                }
+              }}
+            />
+            <button
+              class="text-primary-foreground rounded-lg bg-indigo-500 px-4 py-2 text-white"
+              on:click={() => {
+                const blob = new Blob([JSON.stringify(metadata?.records)], {
+                  type: "application/json",
+                });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "metadata.json";
+                a.click();
+                URL.revokeObjectURL(url);
+              }}>Export</button
+            >
+          {/if}
+        </div>
+        <div class="pb-4 pt-0">
+          <div class="grid grid-cols-3 gap-3">
+            {#each metadata.records as record, index}
+              <div
+                class={"flex items-center gap-3 rounded-lg border border-gray-200 px-2 py-1" +
+                  (selectedBookmark === index
+                    ? " bg-indigo-700 text-white"
+                    : "")}
+              >
+                <input
+                  type="checkbox"
+                  checked={record.Text !== undefined &&
+                    record.Text !== "" &&
+                    record.Text !== null}
+                  class="h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-300 focus:ring-indigo-600"
+                />
+                <button
+                  on:keydown={() => {
+                    audio.currentTime = HMSToSeconds(record.Start);
+                    updateTime();
+                  }}
+                  on:click={() => {
+                    audio.currentTime = HMSToSeconds(record.Start);
+                    selectedBookmark = index;
+                    bookmarkValue =
+                      metadata?.records[selectedBookmark].Text ?? "";
+                    updateTime();
+                  }}
+                >
+                  <div class="font-medium">Chapter:&nbsp;{index + 1}</div>
+                  <span class="text-muted-foreground text-sm">
+                    Time:&nbsp;{record.Start.split(".")[0]}
+                  </span>
+                </button>
+              </div>
+            {/each}
+          </div>
+        </div>
+      </div>
+    {/if}
   {/if}
 </div>

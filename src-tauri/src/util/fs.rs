@@ -24,6 +24,17 @@ pub fn copy_dir(src: &Path, dest: &Path, overwrite: bool) -> io::Result<()> {
         }
     }
     fs::create_dir_all(dest)?;
+    dest.read_dir().map(|mut dir| {
+        while let Some(entry) = dir.next() {
+            if let Ok(entry) = entry {
+                if entry.path().is_dir() {
+                    fs::remove_dir_all(entry.path()).ok();
+                } else {
+                    fs::remove_file(entry.path()).ok();
+                }
+            }
+        }
+    })?;
     copy_contents(src, dest, overwrite)
 }
 
