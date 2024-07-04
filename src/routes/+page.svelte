@@ -5,14 +5,13 @@
   import { convertFileSrc } from "@tauri-apps/api/tauri";
   import { readDir, BaseDirectory } from "@tauri-apps/api/fs";
 
-  let audibleFolders: { path: string; name: string }[] = [];
+  let audibleFolders: { cover: string; name: string }[] = [];
 
   const handleClick = async () => {
     const selected = await open({
       directory: true,
       multiple: false,
     });
-    console.log(selected);
 
     if (Array.isArray(selected)) {
       // user selected multiple files
@@ -27,33 +26,50 @@
   const getDirectoryContents = async () => {
     const folders = await readDir("assets", {
       dir: BaseDirectory.AppData,
+      recursive: true,
     });
     audibleFolders = folders.map((fi) => {
+      const cover = fi.children?.find((e) => e.name?.includes(".jpg"));
       return {
         name: fi.name as string,
-        path: convertFileSrc(fi.path),
+        cover: cover ? convertFileSrc(cover.path) : "",
       };
     });
-    console.log(audibleFolders);
   };
   getDirectoryContents();
+  setInterval(getDirectoryContents, 10000);
 </script>
 
-<div class="row fixed top-0 flex items-center justify-center">
-  <div>
-    <button
-      class="m-1 rounded-lg border border-indigo-500 p-1 text-sm text-black hover:bg-indigo-500 hover:text-white"
-      on:click={handleClick}
-      >Add a directory where one audible title is located</button
-    >
-  </div>
-</div>
+<nav class="flex justify-between">
+  <button
+    on:click={handleClick}
+    class="absolute left-0 top-0 mr-4 mt-2 -translate-x-2 rounded-lg rounded-l-none bg-indigo-800 px-4 py-2 text-white transition duration-100 ease-in-out hover:translate-x-0 hover:pl-8 hover:shadow-md"
+    >Add a directory where one audible title is located</button
+  >
+</nav>
 <div class="flex h-screen flex-col items-center justify-center gap-2">
-  <div class="flex flex-col items-center justify-center gap-2">
+  <div class="grid grid-cols-2 items-center justify-center gap-2">
     {#each audibleFolders as folder}
-      <a href={"/folder/" + folder.name}>
-        <div class="rounded-lg border border-indigo-500 p-4">
-          <span>{folder.name}</span>
+      <a
+        href={"/folder/" + folder.name}
+        class="transition duration-100 ease-in-out hover:scale-105 hover:shadow-md"
+      >
+        <div class="mx-auto grid max-w-4xl grid-cols-1">
+          <div
+            class="relative col-start-1 row-start-1 flex w-64 flex-col-reverse rounded-lg bg-gradient-to-t from-black/85 via-black/50 p-3"
+          >
+            <h1 class="dark mt-1 text-lg font-semibold text-white">
+              {folder.name}
+            </h1>
+          </div>
+          <div class="col-start-1 col-end-3 row-start-1 grid gap-4">
+            <img
+              src={folder.cover}
+              alt={folder.name}
+              class="h-40 w-full rounded-lg object-cover object-top"
+              loading="lazy"
+            />
+          </div>
         </div>
       </a>
     {/each}

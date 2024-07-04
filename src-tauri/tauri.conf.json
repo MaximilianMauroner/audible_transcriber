@@ -23,13 +23,17 @@
         "readDir": true,
         "readFile": true,
         "scope": ["$APPDATA/**", "$APPDATA/*", "$APPDATA/", "$APPDATA"]
+      },
+      "protocol": {
+        "asset": true,
+        "assetScope": ["$APPDATA/**", "$APPDATA/*", "$APPDATA/", "$APPDATA"]
       }
     },
     "windows": [
       {
-        "title": "audible_clipper",
-        "width": 800,
-        "height": 600
+        "title": "Audible Clips&Bookmarks",
+        "width": 1600,
+        "height": 900
       }
     ],
     "security": {
