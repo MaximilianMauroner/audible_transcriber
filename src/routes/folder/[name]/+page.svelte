@@ -1,6 +1,11 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import { readDir, BaseDirectory, readTextFile } from "@tauri-apps/api/fs";
+  import {
+    readDir,
+    BaseDirectory,
+    readTextFile,
+    writeTextFile,
+  } from "@tauri-apps/api/fs";
   import { convertFileSrc } from "@tauri-apps/api/tauri";
 
   let name = $page.params.name;
@@ -40,6 +45,8 @@
   let isReady = -2;
   let selectedBookmark: number;
   let bookmarkValue: string;
+  let playbackRate = 1;
+  let saving = false;
 
   const HMSToSeconds = (hms: string) => {
     const a = hms.split(":");
@@ -48,6 +55,7 @@
 
   audio.onloadedmetadata = () => {
     totalTrackTime = audio.duration;
+    console.log(metadata?.records);
 
     metadata?.records.forEach((record) => {
       record.relativePosition = calculateProgress(HMSToSeconds(record.Start));
@@ -55,6 +63,10 @@
     metadata?.records.sort((a, b) => a.relativePosition - b.relativePosition);
 
     isReady++;
+    if (metadata?.records.length && metadata?.records.length > 0) {
+      selectedBookmark = 0;
+      bookmarkValue = metadata?.records[selectedBookmark].Text ?? "";
+    }
     updateTime();
   };
 
@@ -75,10 +87,15 @@
     return `${hours}:${minutes}:${seconds}`;
   };
 
+  $: audio.playbackRate = playbackRate;
+
   readDir("assets/" + name, {
     dir: BaseDirectory.AppData,
   }).then(async (files) => {
-    const jsonFile = files.find((fi) => fi.name?.endsWith(".json"));
+    const jsonFile = files.find(
+      (fi) => fi.name?.endsWith(".json") && !fi.name?.startsWith("save"),
+    );
+    const saveFile = files.find((fi) => fi.name?.startsWith("save"));
     if (jsonFile === undefined) {
       console.error("No metadata file found");
       return;
@@ -86,6 +103,15 @@
 
     const text = await readTextFile(jsonFile?.path as string);
     metadata = JSON.parse(text) as AudioMetadata;
+
+    if (saveFile) {
+      const saveText = await readTextFile(saveFile?.path as string);
+      const saveData = JSON.parse(saveText) as Record[];
+      metadata.records = saveData;
+    }
+
+    console.log("metadata", metadata);
+
     const f = files.find((e) => {
       return (
         inclsionList.find((inclsion) => e.name?.includes(inclsion)) !==
@@ -116,7 +142,7 @@
       clearInterval(trackTimer);
       console.log(`Ended = ${audio.ended}`);
     } else {
-      trackTimer = setInterval(updateTime, 1000);
+      trackTimer = setInterval(updateTime, 10);
     }
   };
 
@@ -158,6 +184,23 @@
   const getCurrentTimeByPercentage = (percentage: number) => {
     return (percentage / 100) * audio.duration;
   };
+  const saveData = () => {
+    if (metadata) {
+      saving = true;
+      writeTextFile(
+        "assets/" + name + "/save.json",
+        JSON.stringify(metadata.records),
+        {
+          dir: BaseDirectory.AppData,
+        },
+      ).then(() => {
+        setTimeout(() => {
+          saving = false;
+        }, 250);
+      });
+    }
+  };
+  // setInterval(saveData, 10000);
 </script>
 
 <nav class="flex justify-between">
@@ -177,10 +220,38 @@
     Bookmarks: {metadata?.records.length || "loading"}
   </h3>
 </nav>
+{#if saving}
+  <div
+    class="text-muted-foreground text-sm2 absolute bottom-2 right-2 flex items-center gap-2 rounded-lg bg-indigo-500 p-2 text-white"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      class="h-4 w-4 animate-spin"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    >
+      <path d="M12 2v4" />
+      <path d="m16.2 7.8 2.9-2.9" />
+      <path d="M18 12h4" />
+      <path d="m16.2 16.2 2.9 2.9" />
+      <path d="M12 18v4" />
+      <path d="m4.9 19.1 2.9-2.9" />
+      <path d="M2 12h4" />
+      <path d="m4.9 4.9 2.9 2.9" />
+    </svg>
+    <span class="text-primary-foreground text-sm">Saving</span>
+  </div>
+{/if}
 
-<div class="mx-auto flex w-screen flex-col items-center justify-center px-4">
+<div class="mx-auto flex w-full flex-col items-center justify-center px-4">
   {#if audibleFile}
-    <div class="flex h-20 w-full items-center justify-center bg-white px-4">
+    <div class="flex h-20 w-full items-center justify-center px-4">
       <button
         on:click={rewindAudio}
         class="group h-8 w-8 rounded-full p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-700"
@@ -260,19 +331,28 @@
           ></path>
         </svg>
       </button>
+      <input
+        type="range"
+        min="0.5"
+        max="3"
+        step="0.25"
+        class="ml-4 h-1 w-64 cursor-pointer appearance-none rounded-full bg-indigo-500"
+        bind:value={playbackRate}
+      />
+      <span class="w-8 px-2 text-indigo-800">{playbackRate}x</span>
     </div>
-    <div class="flex w-full pb-3">
+    <div class="flex h-20 w-full items-center pb-3">
       <span class="px-2 text-indigo-800">{currTimeDisplay}</span>
       <div class="w-full">
         <input
-          on:change={(e) => {
+          on:input={(e) => {
             audio.currentTime = getCurrentTimeByPercentage(
               +e.currentTarget.value,
             );
             updateDisplayTime();
           }}
           value={progress}
-          class=" h-1 w-full cursor-pointer appearance-none rounded-full bg-indigo-500"
+          class="h-1 w-full cursor-pointer appearance-none rounded-full bg-indigo-500"
           type="range"
         />
       </div>
@@ -289,9 +369,13 @@
               class="h-96 w-full rounded-lg border border-gray-200 p-4"
               bind:value={bookmarkValue}
               on:input={(e) => {
-                if (e?.target?.value && metadata) {
-                  metadata.records[selectedBookmark].Text = e.target.value;
+                if (e?.currentTarget.value && metadata) {
+                  metadata.records[selectedBookmark].Text =
+                    e.currentTarget.value;
                 }
+              }}
+              on:change={() => {
+                saveData();
               }}
             />
             <button
