@@ -1,6 +1,5 @@
 <script lang="ts">
   import { page } from "$app/stores";
-  import { writeText } from "@tauri-apps/api/clipboard";
   import {
     readDir,
     BaseDirectory,
@@ -57,6 +56,7 @@
 
   audio.onloadedmetadata = () => {
     totalTrackTime = audio.duration;
+    audio.playbackRate = playbackRate;
 
     metadata?.records.forEach((record) => {
       record.relativePosition = calculateProgress(HMSToSeconds(record.Start));
@@ -444,7 +444,9 @@
           {/if}
         </div>
         <div class="pb-4 pt-0">
-          <div class="grid grid-cols-3 gap-3">
+          <div
+            class="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          >
             {#each metadata.records as record, index}
               <div class={getActiveClasses(record, selectedBookmark, index)}>
                 <input

@@ -1,14 +1,33 @@
-# Tauri + SvelteKit + TypeScript
+# Free Bookmarks
 
-This template should help get you started developing with Tauri, SvelteKit and TypeScript in Vite.
+Free Bookmarks is a web application designed to manage your bookmarks efficiently and effectively, leveraging the power of SvelteKit and Tauri for a smooth, native experience.
 
-## Recommended IDE Setup
+## Installation
 
-[VS Code](https://code.visualstudio.com/) + [Svelte](https://marketplace.visualstudio.com/items?itemName=svelte.svelte-vscode) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer).
+To get started with Free Bookmarks, clone the repository and install the dependencies:
 
-# Getting started
+```sh
+git clone <repository-url>
+cd free_bookmarks
+npm install
+```
 
-1. Download Libation from the [releases page](https://github.com/rmcrackan/Libation/releases)
-2. Create a folder where all the audible files will be stored
-3. Set "Download Clips, Notes and Bookmarks" as JSON
-4. Set "Split my books into multiple files by chapter"
+Running the Application
+To run the application in development mode, use the following command:
+
+For building the application for production, use:
+
+To start the Tauri application, ensure you have the Tauri CLI installed and run:
+
+Dependencies
+SvelteKit for the frontend framework.
+Tauri for creating a lightweight, native application.
+Vite for building and serving the web application.
+For a full list of dependencies, refer to the package.json file.
+
+
+# TODO
+- [ ] Remove/Ignore bookmarks
+- [ ] Fix uninstall problem where 1 folder remains
+- [ ] Add settings/config option
+- [ ] Make faster

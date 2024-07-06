@@ -24,6 +24,11 @@ pub fn copy_dir(src: &Path, dest: &Path, overwrite: bool) -> io::Result<()> {
         }
     }
     fs::create_dir_all(dest)?;
+    remove_dir(dest)?;
+    copy_contents(src, dest, overwrite)
+}
+
+fn remove_dir(dest: &Path) -> io::Result<()> {
     dest.read_dir().map(|mut dir| {
         while let Some(entry) = dir.next() {
             if let Ok(entry) = entry {
@@ -35,7 +40,7 @@ pub fn copy_dir(src: &Path, dest: &Path, overwrite: bool) -> io::Result<()> {
             }
         }
     })?;
-    copy_contents(src, dest, overwrite)
+    Ok(())
 }
 
 pub fn copy_contents(src: &Path, dest: &Path, overwrite: bool) -> io::Result<()> {

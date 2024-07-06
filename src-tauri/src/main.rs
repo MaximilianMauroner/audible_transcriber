@@ -1,6 +1,6 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use std::path::Path;
+use std::{fs, path::Path};
 mod util;
 use serde::{Deserialize, Serialize};
 use util::fs::{copy_dir, create_dir_if_not_exists};
@@ -52,6 +52,38 @@ fn add_directory(dir_path: &str, app_handle: tauri::AppHandle) -> Response {
     }
 }
 
+#[tauri::command]
+fn remove_directory(folder_name: &str, app_handle: tauri::AppHandle) -> Response {
+    let path = app_handle
+        .path_resolver()
+        .app_data_dir()
+        .expect("Failed to resolve app data directory");
+
+    if folder_name.len() < 1 {
+        let json = Response {
+            success: false,
+            message: "No folder name provided".to_string(),
+        };
+        return json;
+    }
+    match fs::remove_dir_all(&path.join("assets").join(folder_name)) {
+        Ok(_) => {
+            let json = Response {
+                success: true,
+                message: format!("Directory: {} removed", folder_name),
+            };
+            json
+        }
+        Err(e) => {
+            let json = Response {
+                success: false,
+                message: format!("Failed to remove directory: {:?}", e),
+            };
+            json
+        }
+    }
+}
+
 fn appdata_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>> {
     let path = match app.path_resolver().app_data_dir() {
         Some(path) => path,
@@ -60,13 +92,16 @@ fn appdata_setup(app: &mut tauri::App) -> Result<(), Box<dyn std::error::Error>>
     create_dir_if_not_exists(&path).unwrap_or_else(|e| {
         panic!("Failed to create app data directory: {:?}", e);
     });
+    create_dir_if_not_exists(&path.join("assets")).unwrap_or_else(|e| {
+        panic!("Failed to create app data directory: {:?}", e);
+    });
     Ok(())
 }
 
 fn main() {
     tauri::Builder::default()
         .setup(appdata_setup)
-        .invoke_handler(tauri::generate_handler![add_directory])
+        .invoke_handler(tauri::generate_handler![add_directory, remove_directory])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
