@@ -1,5 +1,6 @@
 <script lang="ts">
   import { page } from "$app/stores";
+  import { writeText } from "@tauri-apps/api/clipboard";
   import {
     readDir,
     BaseDirectory,
@@ -45,8 +46,9 @@
   let isReady = -2;
   let selectedBookmark: number;
   let bookmarkValue: string;
-  let playbackRate = 1;
+  let playbackRate = 2;
   let saving = false;
+  let inputEl: HTMLTextAreaElement | null = null;
 
   const HMSToSeconds = (hms: string) => {
     const a = hms.split(":");
@@ -55,7 +57,6 @@
 
   audio.onloadedmetadata = () => {
     totalTrackTime = audio.duration;
-    console.log(metadata?.records);
 
     metadata?.records.forEach((record) => {
       record.relativePosition = calculateProgress(HMSToSeconds(record.Start));
@@ -66,6 +67,9 @@
     if (metadata?.records.length && metadata?.records.length > 0) {
       selectedBookmark = 0;
       bookmarkValue = metadata?.records[selectedBookmark].Text ?? "";
+      setTimeout(() => {
+        inputEl?.focus();
+      }, 100);
     }
     updateTime();
   };
@@ -109,8 +113,6 @@
       const saveData = JSON.parse(saveText) as Record[];
       metadata.records = saveData;
     }
-
-    console.log("metadata", metadata);
 
     const f = files.find((e) => {
       return (
@@ -200,7 +202,25 @@
       });
     }
   };
-  // setInterval(saveData, 10000);
+
+  const getActiveClasses = (
+    record: Record,
+    selectedBookmark: number,
+    index: number,
+  ) => {
+    let val =
+      "flex items-center gap-3 rounded-lg border border-gray-200 px-2 py-1";
+    if (selectedBookmark === index) {
+      val += selectedBookmark === index ? " bg-indigo-700 text-white" : "";
+    } else if (
+      record.Text !== undefined &&
+      record.Text !== "" &&
+      record.Text !== null
+    ) {
+      val += " order-last";
+    }
+    return val;
+  };
 </script>
 
 <nav class="flex justify-between">
@@ -368,10 +388,14 @@
             <textarea
               class="h-96 w-full rounded-lg border border-gray-200 p-4"
               bind:value={bookmarkValue}
+              bind:this={inputEl}
               on:input={(e) => {
-                if (e?.currentTarget.value && metadata) {
-                  metadata.records[selectedBookmark].Text =
-                    e.currentTarget.value;
+                let value = "";
+                if (e?.currentTarget.value) {
+                  value = e.currentTarget.value;
+                }
+                if (metadata) {
+                  metadata.records[selectedBookmark].Text = value;
                 }
               }}
               on:change={() => {
@@ -380,35 +404,55 @@
             />
             <button
               class="text-primary-foreground rounded-lg bg-indigo-500 px-4 py-2 text-white"
-              on:click={() => {
-                const blob = new Blob([JSON.stringify(metadata?.records)], {
-                  type: "application/json",
-                });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = "metadata.json";
-                a.click();
-                URL.revokeObjectURL(url);
-              }}>Export</button
+              on:click={async () => {
+                const exportTableValues = metadata?.records
+                  .map((record) => {
+                    if (
+                      record.Text === undefined ||
+                      record.Text === "" ||
+                      record.Text === null
+                    )
+                      return;
+                    return "<p>" + record.Text + "</p>";
+                  })
+                  .filter((e) => e !== undefined);
+
+                if (exportTableValues && exportTableValues.length > 0) {
+                  const tempElement = document.createElement("div");
+                  tempElement.innerHTML = exportTableValues.join("");
+
+                  // Append to the body
+                  document.body.appendChild(tempElement);
+
+                  // Create a range and select the content
+                  const range = document.createRange();
+                  range.selectNode(tempElement);
+                  window.getSelection()?.removeAllRanges();
+                  window.getSelection()?.addRange(range);
+
+                  // Copy the selected content
+                  try {
+                    document.execCommand("copy");
+                    alert("HTML copied to clipboard");
+                  } catch (err) {
+                    alert("Failed to copy");
+                  }
+                  document.body.removeChild(tempElement);
+                }
+              }}>Export to Notion</button
             >
           {/if}
         </div>
         <div class="pb-4 pt-0">
           <div class="grid grid-cols-3 gap-3">
             {#each metadata.records as record, index}
-              <div
-                class={"flex items-center gap-3 rounded-lg border border-gray-200 px-2 py-1" +
-                  (selectedBookmark === index
-                    ? " bg-indigo-700 text-white"
-                    : "")}
-              >
+              <div class={getActiveClasses(record, selectedBookmark, index)}>
                 <input
                   type="checkbox"
                   checked={record.Text !== undefined &&
                     record.Text !== "" &&
                     record.Text !== null}
-                  class="h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-300 focus:ring-indigo-600"
+                  class="pointer-events-none h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-300 focus:ring-indigo-600"
                 />
                 <button
                   on:keydown={() => {
@@ -420,6 +464,7 @@
                     selectedBookmark = index;
                     bookmarkValue =
                       metadata?.records[selectedBookmark].Text ?? "";
+                    inputEl?.focus();
                     updateTime();
                   }}
                 >

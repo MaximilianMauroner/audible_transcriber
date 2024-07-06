@@ -28,6 +28,9 @@
       "protocol": {
         "asset": true,
         "assetScope": ["$APPDATA/**", "$APPDATA/*", "$APPDATA/", "$APPDATA"]
+      },
+      "clipboard": {
+        "writeText": true
       }
     },
     "windows": [
