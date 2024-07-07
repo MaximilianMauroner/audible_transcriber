@@ -1,14 +1,14 @@
-# Free Bookmarks
+# Liberate Bookmarks
 
-Free Bookmarks is a web application designed to manage your bookmarks efficiently and effectively, leveraging the power of SvelteKit and Tauri for a smooth, native experience.
+Liberate Bookmarks is a web application designed to manage your bookmarks efficiently and effectively, leveraging the power of SvelteKit and Tauri for a smooth, native experience.
 
 ## Installation
 
-To get started with Free Bookmarks, clone the repository and install the dependencies:
+To get started with Liberate Bookmarks, clone the repository and install the dependencies:
 
 ```sh
 git clone <repository-url>
-cd free_bookmarks
+cd liberate_bookmarks
 npm install
 ```
 

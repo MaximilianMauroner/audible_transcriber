@@ -6,7 +6,7 @@
     "distDir": "../build"
   },
   "package": {
-    "productName": "Free Bookmarks",
+    "productName": "Liberate Bookmarks",
     "version": "0.0.1"
   },
   "tauri": {
@@ -35,7 +35,7 @@
     },
     "windows": [
       {
-        "title": "Free Bookmarks",
+        "title": "Liberate Bookmarks",
         "width": 900,
         "height": 900
       }
@@ -46,7 +46,7 @@
     "bundle": {
       "active": true,
       "targets": "all",
-      "identifier": "mauronermaximilian.free-bookmarks",
+      "identifier": "mauronermaximilian.liberate-bookmarks",
       "icon": [
         "icons/16x16.png",
         "icons/32x32.png",
