@@ -69,19 +69,6 @@ pub fn copy_contents(src: &Path, dest: &Path, overwrite: bool) -> io::Result<()>
     Ok(())
 }
 
-pub trait PathExt {
-    fn exists_or_none(self) -> Option<PathBuf>;
-}
-
-impl PathExt for PathBuf {
-    fn exists_or_none(self) -> Option<PathBuf> {
-        match self.exists() {
-            true => Some(self),
-            false => None,
-        }
-    }
-}
-
 pub fn create_dir_if_not_exists(path: &PathBuf) -> io::Result<()> {
     if !path.exists() {
         match create_dir(&path) {
