@@ -25,9 +25,9 @@ Tauri for creating a lightweight, native application.
 Vite for building and serving the web application.
 For a full list of dependencies, refer to the package.json file.
 
-
 # TODO
-- [ ] Remove/Ignore bookmarks
+
+- [X] Remove/Ignore bookmarks
 - [ ] Fix uninstall problem where 1 folder remains
 - [ ] Add settings/config option
 - [ ] Make faster

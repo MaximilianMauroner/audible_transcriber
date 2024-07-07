@@ -28,6 +28,7 @@
     Text: any;
     Title: any;
     relativePosition: number;
+    hidden: boolean;
   };
 
   let inclsionList = [".mp3", ".m4b", ".m4a", ".flac", ".wav", ".ogg"];
@@ -47,6 +48,7 @@
   let bookmarkValue: string;
   let playbackRate = 2;
   let saving = false;
+  let copied = false;
   let inputEl: HTMLTextAreaElement | null = null;
 
   const HMSToSeconds = (hms: string) => {
@@ -60,6 +62,7 @@
 
     metadata?.records.forEach((record) => {
       record.relativePosition = calculateProgress(HMSToSeconds(record.Start));
+      record.hidden = record.hidden ?? false;
     });
     metadata?.records.sort((a, b) => a.relativePosition - b.relativePosition);
 
@@ -81,6 +84,7 @@
     }
     return (curr / audio.duration) * 100;
   };
+
   const prettyPrintTime = (time: number) => {
     let hours = Math.floor(time / 3600).toString();
     if (+hours < 10) hours = "0" + hours;
@@ -107,6 +111,18 @@
 
     const text = await readTextFile(jsonFile?.path as string);
     metadata = JSON.parse(text) as AudioMetadata;
+
+    const timestampMap = new Map<string, number>();
+    metadata.records = metadata.records
+      .filter((e) => {
+        if (timestampMap.has(e.Start)) return false;
+        timestampMap.set(e.Start, 1);
+        return true;
+      })
+      .map((record) => {
+        record.hidden = record.hidden ?? false;
+        return record;
+      });
 
     if (saveFile) {
       const saveText = await readTextFile(saveFile?.path as string);
@@ -210,12 +226,11 @@
   ) => {
     let val =
       "flex items-center gap-3 rounded-lg border border-gray-200 px-2 py-1";
-    if (selectedBookmark === index) {
+    if (selectedBookmark === index && !record.hidden) {
       val += selectedBookmark === index ? " bg-indigo-700 text-white" : "";
     } else if (
-      record.Text !== undefined &&
-      record.Text !== "" &&
-      record.Text !== null
+      record.hidden ||
+      (record.Text !== undefined && record.Text !== "" && record.Text !== null)
     ) {
       val += " order-last";
     }
@@ -266,6 +281,13 @@
       <path d="m4.9 4.9 2.9 2.9" />
     </svg>
     <span class="text-primary-foreground text-sm">Saving</span>
+  </div>
+{/if}
+{#if copied}
+  <div
+    class="text-muted-foreground text-sm2 absolute bottom-2 left-2 flex items-center gap-2 rounded-lg bg-indigo-500 p-2 text-white"
+  >
+    <span>Copied</span>
   </div>
 {/if}
 
@@ -408,6 +430,7 @@
                 const exportTableValues = metadata?.records
                   .map((record) => {
                     if (
+                      record.hidden ||
                       record.Text === undefined ||
                       record.Text === "" ||
                       record.Text === null
@@ -433,7 +456,10 @@
                   // Copy the selected content
                   try {
                     document.execCommand("copy");
-                    alert("HTML copied to clipboard");
+                    copied = true;
+                    setTimeout(() => {
+                      copied = false;
+                    }, 2000);
                   } catch (err) {
                     alert("Failed to copy");
                   }
@@ -474,6 +500,54 @@
                   <span class="text-muted-foreground text-sm">
                     Time:&nbsp;{record.Start.split(".")[0]}
                   </span>
+                </button>
+                <button
+                  class={record.hidden
+                    ? "text-muted-foreground"
+                    : selectedBookmark == index
+                      ? "text-white"
+                      : "text-indigo-800"}
+                  on:click={() => {
+                    record.hidden = !record.hidden;
+                    saveData();
+                  }}
+                >
+                  {#if record.hidden}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      class="size-6"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88"
+                      />
+                    </svg>
+                  {:else}
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke-width="1.5"
+                      stroke="currentColor"
+                      class="size-6"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z"
+                      />
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"
+                      />
+                    </svg>
+                  {/if}
                 </button>
               </div>
             {/each}
