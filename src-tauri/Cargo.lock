@@ -853,18 +853,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "free_bookmarks"
-version = "0.0.1"
-dependencies = [
- "anyhow",
- "dirs-next",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
-]
-
-[[package]]
 name = "futf"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1573,6 +1561,18 @@ name = "libc"
 version = "0.2.155"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "97b3888a4aecf77e811145cadf6eef5901f4782c53886191b2f693f24761847c"
+
+[[package]]
+name = "liberate_bookmarks"
+version = "0.0.1"
+dependencies = [
+ "anyhow",
+ "dirs-next",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+]
 
 [[package]]
 name = "libloading"
