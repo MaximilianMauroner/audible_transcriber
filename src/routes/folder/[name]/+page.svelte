@@ -7,29 +7,9 @@
     writeTextFile,
   } from "@tauri-apps/api/fs";
   import { convertFileSrc } from "@tauri-apps/api/tauri";
+  import type { AudioMetadata, Record } from "../../../types";
 
   let name = $page.params.name;
-
-  type AudioMetadata = {
-    title: string;
-    asin: string;
-    exportTime: string;
-    records: Record[];
-  };
-
-  type Record = {
-    Type: string;
-    Created: string;
-    Start: string;
-    AnnotationId?: string;
-    LastModified?: string;
-    RecordType: string;
-    End?: string;
-    Text: any;
-    Title: any;
-    relativePosition: number;
-    hidden: boolean;
-  };
 
   let inclsionList = [".mp3", ".m4b", ".m4a", ".flac", ".wav", ".ogg"];
 
@@ -428,6 +408,9 @@
               bind:value={bookmarkValue}
               on:keydown={(e) => {
                 if (e.ctrlKey && e.key === "Enter") {
+                  if (!isPlaying) {
+                    rewindAudio();
+                  }
                   playPauseAudio();
                 } else if (e.shiftKey && e.key === "Tab") {
                   if (!metadata) return;
