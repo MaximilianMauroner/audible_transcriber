@@ -236,10 +236,21 @@
     }
     return val;
   };
+
+  const changeBookmark = (idx: number) => {
+    const record = metadata?.records[idx];
+    if (!record) return;
+    audio.currentTime = HMSToSeconds(record.Start);
+    selectedBookmark = idx;
+    bookmarkValue = record.Text ?? "";
+    inputEl?.focus();
+    updateTime();
+  };
 </script>
 
 <nav class="flex justify-between">
   <a
+    tabindex="-1"
     href="/"
     on:click={() => {
       if (isPlaying) {
@@ -295,6 +306,7 @@
   {#if audibleFile}
     <div class="flex h-20 w-full items-center justify-center px-4">
       <button
+        tabindex="-1"
         on:click={rewindAudio}
         class="group h-8 w-8 rounded-full p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-700"
       >
@@ -317,6 +329,7 @@
         </svg>
       </button>
       <button
+        tabindex="-1"
         on:click={playPauseAudio}
         class="mx-3 h-10 w-10 rounded-full bg-indigo-700 p-2 hover:bg-indigo-900 focus:outline-none focus:ring-2 focus:ring-indigo-700 focus:ring-offset-2"
       >
@@ -344,6 +357,7 @@
         {/if}
       </button>
       <button
+        tabindex="-1"
         on:click={forwardAudio}
         class="group relative h-8 w-8 rounded-full p-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-700"
       >
@@ -374,6 +388,7 @@
         </svg>
       </button>
       <input
+        tabindex="-1"
         type="range"
         min="0.5"
         max="3"
@@ -387,6 +402,7 @@
       <span class="px-2 text-indigo-800">{currTimeDisplay}</span>
       <div class="w-full">
         <input
+          tabindex="-1"
           on:input={(e) => {
             audio.currentTime = getCurrentTimeByPercentage(
               +e.currentTarget.value,
@@ -410,6 +426,20 @@
             <textarea
               class="h-96 w-full rounded-lg border border-gray-200 p-4"
               bind:value={bookmarkValue}
+              on:keydown={(e) => {
+                if (e.shiftKey && e.key === "Enter") {
+                  playPauseAudio();
+                } else if (e.shiftKey && e.key === "Tab") {
+                  if (!metadata) return;
+                  if (selectedBookmark === 0) return;
+                  const idx = (selectedBookmark - 1) % metadata.records.length;
+                  changeBookmark(idx);
+                } else if (e.key === "Tab") {
+                  if (!metadata) return;
+                  const idx = (selectedBookmark + 1) % metadata.records.length;
+                  changeBookmark(idx);
+                }
+              }}
               bind:this={inputEl}
               on:input={(e) => {
                 let value = "";
@@ -425,6 +455,7 @@
               }}
             />
             <button
+              tabindex="-1"
               class="text-primary-foreground rounded-lg bg-indigo-500 px-4 py-2 text-white"
               on:click={async () => {
                 const exportTableValues = metadata?.records
@@ -476,6 +507,7 @@
             {#each metadata.records as record, index}
               <div class={getActiveClasses(record, selectedBookmark, index)}>
                 <input
+                  tabindex="-1"
                   type="checkbox"
                   checked={record.Text !== undefined &&
                     record.Text !== "" &&
@@ -483,17 +515,13 @@
                   class="pointer-events-none h-4 w-4 rounded border-gray-300 text-indigo-600 accent-indigo-300 focus:ring-indigo-600"
                 />
                 <button
+                  tabindex="-1"
                   on:keydown={() => {
                     audio.currentTime = HMSToSeconds(record.Start);
                     updateTime();
                   }}
                   on:click={() => {
-                    audio.currentTime = HMSToSeconds(record.Start);
-                    selectedBookmark = index;
-                    bookmarkValue =
-                      metadata?.records[selectedBookmark].Text ?? "";
-                    inputEl?.focus();
-                    updateTime();
+                    changeBookmark(index);
                   }}
                 >
                   <div class="font-medium">Chapter:&nbsp;{index + 1}</div>
@@ -502,6 +530,7 @@
                   </span>
                 </button>
                 <button
+                  tabindex="-1"
                   class={record.hidden
                     ? "text-muted-foreground"
                     : selectedBookmark == index
