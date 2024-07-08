@@ -427,7 +427,7 @@
               class="h-96 w-full rounded-lg border border-gray-200 p-4"
               bind:value={bookmarkValue}
               on:keydown={(e) => {
-                if (e.shiftKey && e.key === "Enter") {
+                if (e.ctrlKey && e.key === "Enter") {
                   playPauseAudio();
                 } else if (e.shiftKey && e.key === "Tab") {
                   if (!metadata) return;
