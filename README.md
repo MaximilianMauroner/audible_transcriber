@@ -1,13 +1,18 @@
 # Liberate Bookmarks
 
-Liberate Bookmarks is a web application designed to manage your bookmarks efficiently and effectively, leveraging the power of SvelteKit and Tauri for a smooth, native experience.
+Liberate Bookmarks is a web application designed to export your audio bookmarks in away that they can be importet into Notion/Excel/Sheets.
+This is done leveraging the power of SvelteKit and Tauri for a smooth, native experience.
 
-## Installation
+# Installation
+
+To install the application locally, download the latest release from the releases page.
+
+## Development
 
 To get started with Liberate Bookmarks, clone the repository and install the dependencies:
 
 ```sh
-git clone <repository-url>
+git clone https://github.com/MaximilianMauroner/liberate_bookmarks
 cd liberate_bookmarks
 npm install
 ```
@@ -15,9 +20,15 @@ npm install
 Running the Application
 To run the application in development mode, use the following command:
 
+```sh
+npm run tauri dev
+```
+
 For building the application for production, use:
 
-To start the Tauri application, ensure you have the Tauri CLI installed and run:
+```sh
+npm run tauri build
+```
 
 Dependencies
 SvelteKit for the frontend framework.
